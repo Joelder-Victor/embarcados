@@ -1,6 +1,6 @@
+from pydantic import BaseModel
+from fastapi.responses import JSONResponse 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-
 import hashlib
 import secrets
 
@@ -20,10 +20,25 @@ def get_key():
     keys.add(key)
     return {"key": key}
 
+
+
+
+class RequestModel(BaseModel):
+    key: str
+    # Adicione outros campos que você deseja incluir na requisição
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "key": "example_key",
+                # Adicione exemplos de outros campos, se houver
+            }
+        }
+
 @app.post("/check_key")
-async def check_key(request: Request):
-    data = request.json()
-    key = data.get('key')
+def check_key(request: RequestModel):
+    
+    key = request.key
     print('keys: ',keys)
     print('key: ',key)
     if key in keys:
