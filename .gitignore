@@ -5,3 +5,4 @@ managed_components/
 __pycache__/
 credentials_firebase.*
 main_copy.c
+*.pem

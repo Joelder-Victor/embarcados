@@ -1,0 +1,1 @@
+COMPONENT_EMBED_TXTFILES := certs/certificate.pem
