@@ -22,11 +22,11 @@ def get_key():
 
 @app.post("/check_key")
 async def check_key(request: Request):
-    data = await request.json()
+    data = request.json()
     key = data.get('key')
     print('keys: ',keys)
     print('key: ',key)
     if key in keys:
         return JSONResponse(content={"message": "Chave válida"}, status_code=200)
     else:
-        raise HTTPException(status_code=404, detail="Chave inválida" + keys)
+        raise HTTPException(status_code=404, detail="Chave inválida" + key)
