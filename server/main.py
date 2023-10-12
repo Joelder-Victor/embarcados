@@ -8,6 +8,7 @@ app = FastAPI()
 
 # Armazenamento temporário para as chaves geradas
 keys = set()
+keys.add("CHAVESECRETA1")
 
 def generate_key():
     """Gera uma chave de 12 caracteres."""
