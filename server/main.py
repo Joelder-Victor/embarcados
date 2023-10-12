@@ -24,7 +24,7 @@ def get_key():
 async def check_key(request: Request):
     data = await request.json()
     key = data.get('key')
-
+    print(key)
     if key in keys:
         return JSONResponse(content={"message": "Chave válida"}, status_code=200)
     else:
