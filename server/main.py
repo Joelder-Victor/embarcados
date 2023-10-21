@@ -39,9 +39,12 @@ class RequestModel(BaseModel):
 def check_key(request: RequestModel):
     
     key = request.key
-    print('keys: ',keys)
-    print('key: ',key)
+  
     if key in keys:
         return JSONResponse(content={"message": "Chave válida"}, status_code=200)
     else:
-        raise HTTPException(status_code=404, detail="Chave inválida" + key)
+        raise HTTPException(status_code=404, detail="Chave inválida")
+
+@app.get("/")
+def root():
+    return "Server On!" 

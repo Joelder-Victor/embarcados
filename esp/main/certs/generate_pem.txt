@@ -1,1 +1,1 @@
-penssl s_client -showcerts -connect <<server>>:443 >> certificate.pem
+openssl s_client -showcerts -connect <<server>>:443 >> certificate.pem
