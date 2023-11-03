@@ -52,7 +52,7 @@ async def check_key(request: RequestModel):
 @router.post('/log_entries')
 async def insert_log(request:RequestLogModel):
     key = request.key
-    id_door = request.id_door
+    id_door = request.door_id
     hour = datetime.now()
     id= generate_random_string()
     query = f"""INSERT INTO "security".logs
