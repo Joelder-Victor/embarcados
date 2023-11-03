@@ -3,4 +3,4 @@ uvicorn
 gunicorn
 databases
 asyncpg
-dotenv
+python-dotenv
