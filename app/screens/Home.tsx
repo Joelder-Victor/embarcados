@@ -131,14 +131,6 @@ const HomeScreen = ({ navigation }: any) => {
             renderItem={renderDeviceModalListItem}
           />
         </View>
-        {/* <TouchableOpacity
-          onPress={connectedDevice ? disconnectFromDevice : openModal}
-          style={styles.ctaButton}
-        >
-          <Text style={styles.ctaButtonText}>
-            {connectedDevice ? "Disconnect" : "Connect"}
-          </Text>
-        </TouchableOpacity> */}
         <TouchableOpacity
           onPress={async () => {
             try {
@@ -173,12 +165,13 @@ const HomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f2f2f2",
+    backgroundColor: "#ffffff",
   },
   cardWrapper: {
     flex: 1,
     marginTop: 60,
     marginHorizontal: 20,
+    backgroundColor: "#ffffff",
   },
   heartRateTitleWrapper: {
     flex: 5,
@@ -195,7 +188,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   ctaButton: {
-    backgroundColor: "#FF6060",
+    backgroundColor: "#049cfb",
     justifyContent: "center",
     alignItems: "center",
     height: 50,
@@ -253,7 +246,7 @@ const modalStyle = StyleSheet.create({
     textAlign: "center",
   },
   ctaButton: {
-    backgroundColor: "#FF6060",
+    backgroundColor: "#049cfb",
     justifyContent: "center",
     alignItems: "center",
     height: 50,
