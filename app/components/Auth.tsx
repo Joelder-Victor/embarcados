@@ -4,12 +4,11 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
-export default function() {
+export default function({ navigation }) {
      GoogleSignin.configure({
         scopes: ['https://www.googleapis.com/auth/drive.readonly'], // what API you want to access on behalf of the user, default is email and profile
         webClientId: '959788450263-0i9b4lahad2qhov09k68h8caea8cl411.apps.googleusercontent.com', // client ID of type WEB for your server (needed to verify user ID and offline access)
     });
-
 
     return(
         <GoogleSigninButton
@@ -18,10 +17,8 @@ export default function() {
             onPress={async () => {
                 try {
                     await GoogleSignin.hasPlayServices();
-                    // console.log(await GoogleSignin.signIn())
                     const userInfo = await GoogleSignin.signIn();
-                    console.log(JSON.stringify(userInfo, null, 2))
-                    //setState({ userInfo });
+                    navigation.navigate("Home", {user: userInfo});
                 } catch (error: any) {
                     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
                     // user cancelled the login flow
