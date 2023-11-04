@@ -1,118 +1,173 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import {
-    FlatList,
+  FlatList,
+  ListRenderItemInfo,
   SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import DeviceModal from "../screens/DeviceConnectionModal";
-import { PulseIndicator } from "../components/PulseIndicator";
 import useBLE from "../components/useBLE";
-import { Avatar, Button, Card, Text } from "react-native-paper";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import {
+  ActivityIndicator,
+  Avatar,
+  Button,
+  Card,
+  Dialog,
+  Portal,
+  Text,
+} from "react-native-paper";
+import { GoogleSignin, User } from "@react-native-google-signin/google-signin";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { Separador } from "../components/Separador";
+import { Device } from "react-native-ble-plx";
 
 type IUser = {
   Login: {
-    user: any
+    user: any;
   };
 };
-const HomeScreen = ({navigation}) => {
-    const route = useRoute<RouteProp<IUser, 'Login'>>();
-    const {
-        requestPermissions,
-        scanForPeripherals,
-        allDevices,
-        connectToDevice,
-        connectedDevice,
-        // heartRate,
-        disconnectFromDevice,
-    } = useBLE();
-    const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
-    const scanForDevices = async () => {
-        const isPermissionsEnabled = await requestPermissions();
-        if (isPermissionsEnabled) {
-        scanForPeripherals();
-        }
-    };
+type DeviceModalListItemProps = {
+  item: ListRenderItemInfo<Device>;
+  connectToPeripheral: (device: Device) => void;
+};
 
-    const hideModal = () => {
-        setIsModalVisible(false);
-    };
+const HomeScreen = ({ navigation }: any) => {
+  const route = useRoute<RouteProp<IUser, "Login">>();
+  const {
+    requestPermissions,
+    scanForPeripherals,
+    allDevices,
+    connectToDevice,
+    connectedDevice,
+    disconnectFromDevice,
+  } = useBLE();
+  const [user, setUser] = useState<User | null>();
+  const [visible, setVisible] = React.useState(false);
 
-    const openModal = async () => {
-        scanForDevices();
-        setIsModalVisible(true);
-    };
+  const scanForDevices = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
+    }
+  };
 
-    const LeftContent = props => <Avatar.Image {...props} source={{ uri: route?.params.user.user.photo }}/>
+  const showDialog = () => setVisible(true);
 
-    useEffect(() => {
-        scanForDevices;
-    }, []);
+  const hideDialog = () => setVisible(false);
+
+  const LeftContent = (props: any) => (
+    <Avatar.Image {...props} source={{ uri: user?.user.photo }} />
+  );
+
+  const getCurrentUser = async () => {
+    const currentUser = await GoogleSignin.getCurrentUser();
+    setUser(currentUser);
+  };
+
+  const DeviceModalListItem: FC<DeviceModalListItemProps> = (props) => {
+    const { item, connectToPeripheral } = props;
+
+    const connectAndCloseModal = useCallback(() => {
+      connectToPeripheral(item.item);
+      showDialog();
+    }, [connectToPeripheral, item.item, showDialog]);
 
     return (
-        <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        onPress={connectAndCloseModal}
+        style={modalStyle.ctaButton}
+      >
+        <Text style={modalStyle.ctaButtonText}>{item.item.name}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDeviceModalListItem = useCallback(
+    (item: ListRenderItemInfo<Device>) => {
+      return (
+        <DeviceModalListItem
+          item={item}
+          connectToPeripheral={connectToDevice}
+        />
+      );
+    },
+    [connectToDevice]
+  );
+
+  useEffect(() => {
+    if (route.params) {
+      setUser(route.params.user);
+    } else {
+      getCurrentUser();
+    }
+    GoogleSignin.configure({});
+    scanForDevices();
+  }, []);
+
+  if (user == null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator animating={true} color={"black"} size={64} />
+      </View>
+    );
+  } else {
+    return (
+      <SafeAreaView style={styles.container}>
         <View style={styles.cardWrapper}>
-            <Card>
-                <Card.Title title={route?.params.user.user.name} subtitle={route?.params.user.user.email} left={LeftContent} />
-                {/* <Card.Content>
-                <Avatar.Image size={64} source={{ uri: route?.params.user.user.photo }}/>
-                <Text variant="titleLarge">Card title</Text>
-                <Text variant="bodyMedium">Card content</Text>
-                </Card.Content> */}
-            </Card>
+          <Card>
+            <Card.Title
+              title={user?.user.name}
+              subtitle={user?.user.email}
+              left={LeftContent}
+            />
+          </Card>
         </View>
         <View style={styles.heartRateTitleWrapper}>
-            <Text style={styles.heartRateTitleText}>
-                Salas disponíveis
-            </Text>
-
-            <SafeAreaView style={modalStyle.modalTitle}>
-                {/* <Text style={modalStyle.modalTitleText}>
-                Tap on a device to connect
-                </Text> */}
-                <FlatList
-                contentContainerStyle={modalStyle.modalFlatlistContiner}
-                data={allDevices}
-                // renderItem={renderDeviceModalListItem}
-                />
-            </SafeAreaView>
+          <Text style={styles.heartRateTitleText}>Salas disponíveis</Text>
+          <FlatList
+            contentContainerStyle={modalStyle.modalFlatlistContiner}
+            data={allDevices}
+            renderItem={renderDeviceModalListItem}
+          />
         </View>
-        <TouchableOpacity
-            onPress={connectedDevice ? disconnectFromDevice : openModal}
-            style={styles.ctaButton}
+        {/* <TouchableOpacity
+          onPress={connectedDevice ? disconnectFromDevice : openModal}
+          style={styles.ctaButton}
         >
-            <Text style={styles.ctaButtonText}>
+          <Text style={styles.ctaButtonText}>
             {connectedDevice ? "Disconnect" : "Connect"}
-            </Text>
-        </TouchableOpacity>
+          </Text>
+        </TouchableOpacity> */}
         <TouchableOpacity
-            onPress={async () => {
-                    try {
-                        await GoogleSignin.signOut();
-                        navigation.navigate("Login");
-                        } catch (error) {
-                        console.error(error);
-                    }}}
-            style={styles.outButton}
+          onPress={async () => {
+            try {
+              await GoogleSignin.signOut();
+              navigation.navigate("Login");
+            } catch (error) {
+              console.error(error);
+            }
+          }}
+          style={styles.outButton}
         >
-            <Text style={styles.outButtonText}>
-            {"Sair"}
-            </Text>
+          <Text style={styles.outButtonText}>{"Sair"}</Text>
         </TouchableOpacity>
-        
-        {/* <DeviceModal
-            closeModal={hideModal}
-            visible={isModalVisible}
-            connectToPeripheral={connectToDevice}
-            devices={allDevices}
-        /> */}
-        </SafeAreaView>
+        <View>
+          <Portal>
+            <Dialog visible={visible} onDismiss={hideDialog}>
+              <Dialog.Title>Alert</Dialog.Title>
+              <Dialog.Content>
+                <Text variant="bodyMedium">This is simple dialog</Text>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button onPress={hideDialog}>Done</Button>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
+        </View>
+      </SafeAreaView>
     );
+  }
 };
 
 const styles = StyleSheet.create({
@@ -126,7 +181,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   heartRateTitleWrapper: {
-    flex: 3,
+    flex: 5,
   },
   heartRateTitleText: {
     fontSize: 30,
