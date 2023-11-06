@@ -19,15 +19,20 @@ esp_err_t client_event_post_handler(esp_http_client_event_handle_t evt)
     return ESP_OK;
 }
 
-int post_rest_function(char * post_data)
+int post_rest_function(char * post_data, char *route)
 { 
-    
+    char url_[LEN_URL]={URL_SERVER};
+    //strcat(url_,URL_SERVER);
+    strcat(url_,route);
+    printf("post: %s\n",post_data);
+    printf("url: %s\n",url_);
+
     esp_http_client_config_t config_post = {
-        .url = URL_SERVER,
+        .url = url_,
         .method = HTTP_METHOD_POST,
         .cert_pem = (const char *)ClientCert_pem_start,
         .event_handler = client_event_post_handler,
-        .timeout_ms = 5000};
+        .timeout_ms = 60000};
 
     esp_http_client_handle_t client = esp_http_client_init(&config_post);
 
@@ -50,4 +55,32 @@ int post_rest_function(char * post_data)
     esp_http_client_cleanup(client);
 
     return response_code;
+}
+
+esp_err_t client_event_get_handler(esp_http_client_event_handle_t evt)
+{
+    switch (evt->event_id)
+    {
+    case HTTP_EVENT_ON_DATA:
+        printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
+        break;
+
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+void wake_up_server()
+{
+    esp_http_client_config_t config_get = {
+        .url = "https://laser-1.onrender.com",
+        .method = HTTP_METHOD_GET,
+        .cert_pem = (const char *)ClientCert_pem_start,
+        .event_handler = client_event_get_handler,
+        .timeout_ms = 60000};
+        
+    esp_http_client_handle_t client = esp_http_client_init(&config_get);
+    esp_http_client_perform(client);
+    esp_http_client_cleanup(client);
 }

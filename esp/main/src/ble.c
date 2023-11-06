@@ -1,44 +1,113 @@
 #include "../include/ble.h"
 
+
 char *TAG = DOOR_NAME;
 uint8_t ble_addr_type;
+
+char current_datetime[LEN_DATETIME];
+int count_log = 0;
+
+struct Log
+{
+    char key[LEN_KEY];
+    char hour[LEN_DATETIME];
+};
+
+struct Log logging[LEN_CACHE];
+
+
 // UUID - Universal Unique Identifier
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
-     .uuid = BLE_UUID16_DECLARE(0x180), // Define UUID for device type
+     .uuid = BLE_UUID16_DECLARE(0x1800), // Define UUID for device type
      .characteristics = (struct ble_gatt_chr_def[]){
-         /*{.uuid = BLE_UUID16_DECLARE(0xFEF4), // Define UUID for reading
+         {.uuid = BLE_UUID16_DECLARE(0xFEF4), // Define UUID for reading
           .flags = BLE_GATT_CHR_F_READ,
-          .access_cb = device_read},*/
-         {.uuid = BLE_UUID16_DECLARE(0xDEAD), // Define UUID for writing
+          .access_cb = device_read},
+         {.uuid = BLE_UUID16_DECLARE(0x2a01), // Define UUID for writing
           .flags = BLE_GATT_CHR_F_WRITE,
           .access_cb = device_write},
          {0}}},
     {0}};
 
+// Read data from ESP32 defined as server
+static int device_read(uint16_t con_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    os_mbuf_append(ctxt->om, "Data from the server", strlen("Data from the server"));
+    return 0;
+}
+void create_post_data(char *post_data, const char *key, const char *hour)
+{
+
+    if (strlen(hour))
+    {
+        snprintf(post_data, LEN_POST_DATA, "{\"key\":\"%s\",\"door_id\":\"%s\",\"hour\":\"%s\"}", key, DOOR_ID, hour);
+        return;
+    }
+    snprintf(post_data, LEN_POST_DATA, "{\"key\":\"%s\",\"door_id\":\"%s\"}", key, DOOR_ID);
+    return;
+}
+
 static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
+    int response = 1;
+
     printf("Data from the client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
 
     char *data = (char *)ctxt->om->om_data;
-   
-    //printf("Length Data %d\n", strlen(data));
+    char post_data[LEN_POST_DATA];
+    
+    create_post_data(&post_data, data, "");
+    printf("Length Data %d\n", strlen(data));
 
-    if (check_in(data))
+    if (check_in(data, post_data))
     {
         gpio_set_level(OUT_SIGNAL, 0);
         open_time();
         gpio_set_level(OUT_SIGNAL, 1);
+
+        get_current_datetime(current_datetime);
+        
+        create_post_data(&post_data, data, current_datetime);
+        
+        response = post_rest_function(post_data, "log_entries");
+
+        if (response == 200)
+        {
+            printf("Log inserted successfully!");
+            if (count_log)
+            {
+                int temp = count_log;
+                for (int i = count_log - 1; i >= 0; i--)
+                {
+                    create_post_data(&post_data, logging[i].key, logging[i].hour);
+                    response = post_rest_function(post_data, "log_entries");
+                    if (response == 200)
+                    {
+                        temp--;
+                        memset(logging[i].key, 0, strlen(logging[i].key));
+                        memset(logging[i].hour, 0, strlen(logging[i].hour));
+                    }
+                    printf("Valor de i %d\n", i);
+                }
+                count_log = temp;
+            }
+        }
+        else
+        {
+            strcpy(logging[count_log].key, data);
+            strcpy(logging[count_log].hour, current_datetime);
+            printf("Log salvo em cache!");
+            count_log++;
+        }
         memset(data, 0, strlen(data));
+        memset(post_data, 0, strlen(post_data));
         return 0;
     }
 
     memset(data, 0, strlen(data));
 
     return 1;
-}
-char * save_data(char * key){
-    return key;
 }
 // BLE event handling
 static int ble_gap_event(struct ble_gap_event *event, void *arg)

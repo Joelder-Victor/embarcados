@@ -50,4 +50,24 @@ menu "Example Configuration"
         help
             Define the blinking period in milliseconds.
 
+    config SSID
+        string
+        default "DOCK-UniversityLab"
+        prompt "Configuração de String Padrão"
+
+    config PASSWORD_WIFI
+        string
+        default "labdock2567"
+        prompt "Configuração de String Padrão"
+    
+    config SECRET_KEY
+        string
+        default "hm4FigbDw7MDZpdXwB"
+        prompt "Configuração de String Padrão"
+    
+    config DOOR_ID
+        string
+        default "hm4FigbDw7MDZpdXwB"
+        prompt "Configuração de String Padrão"
+
 endmenu

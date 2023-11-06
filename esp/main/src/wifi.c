@@ -2,6 +2,7 @@
 
 int retry_num=0;
 int got_ip = 0;
+int online = 0;
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -12,16 +13,20 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
     else if (event_id == WIFI_EVENT_STA_CONNECTED)
     {
         printf("WiFi CONNECTED\n");
+        online = 1;
     }
     else if (event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
         printf("WiFi lost connection\n");
-        if (retry_num < 5)
+        online = 0;
+        if(retry_num < 2)
         {
             esp_wifi_connect();
             retry_num++;
-            printf("Retrying to Connect...\n");
+            printf("%d - Retrying to Connect...\n",retry_num);
+            
         }
+        retry_num=0;
     }
     else if (event_id == IP_EVENT_STA_GOT_IP)
     {
@@ -29,7 +34,10 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
         got_ip =1;
     }
 }
-
+int get_status(){
+    
+    return online;
+}
 void wifi_connection()
 {
      //                          s1.4
@@ -58,5 +66,4 @@ void wifi_connection()
     // 4- Wi-Fi Connect Phase
     esp_wifi_connect();
     printf( "wifi_init_softap finished. SSID:%s  password:%s",SSID,PASS);
-    
 }

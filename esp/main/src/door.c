@@ -1,57 +1,73 @@
 #include "../include/door.h"
 #include "../include/http_client.h"
-
+#include "../include/wifi.h"
 static TaskHandle_t taskDoor_handle = NULL;
 
 static QueueHandle_t gpio_isr_queue = NULL;
 
 int button_pin = 2;
-
-char keys [LEN_CACHE][18] = {"CHAVESECRETA"};
-
-
+int count_keys = 1;
+char keys[LEN_CACHE][18] = {SECRET_KEY};
 
 void open_time(void)
 {
     vTaskDelay(10000 / portTICK_PERIOD_MS);
 }
+void set_locale(void){
+   setenv("LC_ALL", "pt_BR.UTF-8", 1); 
+   tzset();
+}
+void print_timestamp(void){
+    set_locale();
+    time_t now;
+    struct tm timeinfo;
 
+    time(&now);
+    localtime_r(&now, &timeinfo);
 
-int check_in(char *data)
+    printf("Data e Hora Atuais: %s\n", asctime(&timeinfo));
+}
+int check_in(char *data, char * post_data)
 {
+    int response = 0;
     if (data == NULL)
     {
         return 0;
     }
-    
+    printf("Verificando\n");
     for (size_t i = 0; i < LEN_CACHE; i++)
     {
-        if (strcmp(data, keys[i]) == 0){
-            memset(data, 0, strlen(data));
+        if (strcmp(data, keys[i]) == 0)
+        {
+            printf("OPEN!\n");
+            //memset(data, 0, strlen(data));
             return 1;
-
         }
     }
-    
-    char post_data[30] = "{\"key\":\"";
-    strcat(post_data,data);
-    strcat(post_data,"\"}");
-    int response = 0; 
-    int status_code=post_rest_function(post_data);
-    
-    if (status_code==200)
-        response = 1;
-    else if(status_code == 404)
-        printf("Invalid Key.");
-    else
-        printf("Erro no servidor.");
+    if (get_status())
+    {
+       
+        int status_code = post_rest_function(post_data,"check_key");
 
-    memset(data, 0, strlen(data));
-    memset(post_data, 0, strlen(post_data));
+        if (status_code == 200){
+            response = 1;
+            if (count_keys == LEN_CACHE)
+                count_keys = 1;
+            
+            strcpy(keys[count_keys],data);
+            count_keys++;
+        }
+        else if (status_code == 404)
+            printf("Invalid Key.");
+        else
+            printf("Erro no servidor.");
+
+        //memset(data, 0, strlen(data));
+        //memset(post_data, 0, strlen(post_data));
         
+    }
     return response;
 }
-
 
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
