@@ -53,7 +53,7 @@ async def check_key(request: RequestModel):
 async def insert_log(request:RequestLogModel):
     key = request.key
     id_door = request.door_id
-    hour = datetime.now()
+    hour = request.hour
     id= generate_random_string()
     query = f"""INSERT INTO "security".logs
         (id_log,"key", "hour", id_door)
