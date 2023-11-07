@@ -15,7 +15,7 @@ import { Buffer } from "buffer";
 
 // import base64 from "react-native-base64";
 
-const UUID_CHARACTERISTIC = "000002a1-0000-1000-8000-00805f9b34fb";
+const UUID_CHARACTERISTIC = "00002a01-0000-1000-8000-00805f9b34fb";
 const UUID_SERVICE = "00001802-0000-1000-8000-00805f9b34fb";
 
 interface BluetoothLowEnergyApi {
@@ -26,6 +26,7 @@ interface BluetoothLowEnergyApi {
   connectedDevice: Device | null;
   allDevices: Device[];
   sendKey: (key: string) => Promise<void>;
+  statusKey: boolean | null;
 //   heartRate: number;
 }
 
@@ -34,8 +35,7 @@ const bleManager = new BleManager();
 function useBLE(): BluetoothLowEnergyApi {
   const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-  const [uuid, setUuid] = useState<string>("");
-  const [serviceUuid, setServiceUuid] = useState<string>("");
+  const [statusKey, setStatusKey] = useState<boolean>(null);
 //   const [heartRate, setHeartRate] = useState<number>(0);
 
   const requestAndroid31Permissions = async () => {
@@ -117,7 +117,7 @@ function useBLE(): BluetoothLowEnergyApi {
       setConnectedDevice(deviceConnection);
       await bleManager.discoverAllServicesAndCharacteristicsForDevice(device.id);
       const services = await deviceConnection.characteristicsForService(UUID_SERVICE);
-      console.log(deviceConnection.services())
+      // console.log(deviceConnection.services())
       console.log(services);      
       bleManager.stopDeviceScan();
     } catch (e) {
@@ -137,96 +137,37 @@ function useBLE(): BluetoothLowEnergyApi {
   const encodeStringToBase64 = (value: string) => {
     console.log(Buffer.from(value).toString("base64"));
     return Buffer.from(value).toString("base64");
-};
-  const sendKey = useCallback(
-  async (key: string) => {
+  };
+
+ const sendKey = async (key: string) => {
     try {
       await connectedDevice.writeCharacteristicWithoutResponseForService(
         UUID_SERVICE,
         UUID_CHARACTERISTIC,
-        encodeStringToBase64('hm4FigbDw7MDZpdXwB')
+        encodeStringToBase64(key)
       );
-    } catch (error) {
-      throw new Error(JSON.stringify(error));
-    } finally{
-      disconnectFromDevice();
+      setStatusKey(true);
+      console.log('enviado')
+    } catch (e) {
+      console.log("FAILED TO SEND", e);
     }
-  },
-  [connectedDevice]
-);
-
-//   const discoverDeviceServices = useCallback(async () => {
-//   if (!connectedDevice) {
-//     throw new Error("Device is not connected to the app");
-//   }
-
-//   await connectedDevice.discoverAllServicesAndCharacteristics();
-// }, []);
-
-// const getDeviceServices = useCallback(async (device: Device) => {
-//   try {
-//     await discoverDeviceServices();
-//     const services = await connectedDevice.services();
-//     console.log(services);
-//     const characteristic = await connectedDevice.characteristicsForService(services[0].uuid)
-//     console.log(characteristic);
-//     setUuid(characteristic[0].uuid);
-//     setServiceUuid(characteristic[0].serviceUUID);
-//     console.log(uuid);
-//     console.log(serviceUuid)
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// }, [connectedDevice, discoverDeviceServices]);
-
-      // await discoverDeviceServices();
-      // const services = await connectedDevice.services();
-      // const characteristic = await connectedDevice.characteristicsForService(services[0].uuid)
-      // console.log(characteristic);
-      // setUuid(characteristic[0].uuid);
-      // setServiceUuid(characteristic[0].serviceUUID);
-      // console.log(uuid);
-      // console.log(serviceUuid)
-
-//   const onHeartRateUpdate = (
-//     error: BleError | null,
-//     characteristic: Characteristic | null
-//   ) => {
-//     if (error) {
-//       console.log(error);
-//       return -1;
-//     } else if (!characteristic?.value) {
-//       console.log("No Data was recieved");
-//       return -1;
-//     }
-
-//     const rawData = base64.decode(characteristic.value);
-//     let innerHeartRate: number = -1;
-
-//     const firstBitValue: number = Number(rawData) & 0x01;
-
-//     if (firstBitValue === 0) {
-//       innerHeartRate = rawData[1].charCodeAt(0);
-//     } else {
-//       innerHeartRate =
-//         Number(rawData[1].charCodeAt(0) << 8) +
-//         Number(rawData[2].charCodeAt(2));
-//     }
-
-//     setHeartRate(innerHeartRate);
-//   };
-
-//   const startStreamingData = async (device: Device) => {
-//     if (device) {
-//       device.monitorCharacteristicForService(
-//         HEART_RATE_UUID,
-//         HEART_RATE_CHARACTERISTIC,
-//         onHeartRateUpdate
-//       );
-//     } else {
-//       console.log("No Device Connected");
-//     }
-//   };
+  };
+  // const sendKey = useCallback(
+  // async (key: string) => {
+  //   try {
+  //     console.log('entra')
+  //     await connectedDevice.writeCharacteristicWithoutResponseForService(
+  //       UUID_SERVICE,
+  //       UUID_CHARACTERISTIC,
+  //       encodeStringToBase64(key)
+  //     );
+  //     setStatusKey(true);
+  //   } catch (error) {
+  //     throw new Error(JSON.stringify(error));
+  //   }
+  // },
+  // [connectedDevice]
+// );
 
   return {
     scanForPeripherals,
@@ -236,6 +177,7 @@ function useBLE(): BluetoothLowEnergyApi {
     connectedDevice,
     disconnectFromDevice,
     sendKey,
+    statusKey,
     // heartRate,
   };
 }

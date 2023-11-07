@@ -42,6 +42,7 @@ const HomeScreen = ({ navigation }: any) => {
     connectedDevice,
     disconnectFromDevice,
     sendKey,
+    statusKey,
   } = useBLE();
   const [user, setUser] = useState<User | null>();
   const [visible, setVisible] = React.useState(false);
@@ -92,9 +93,7 @@ const HomeScreen = ({ navigation }: any) => {
 
     const connectAndCloseModal = useCallback(async () => {
       connectToPeripheral(item.item);
-      sendKey(key);
-      showDialog();
-    }, [connectToPeripheral, item.item, showDialog]);
+    }, [connectToPeripheral, item.item]);
 
     return (
       <TouchableOpacity
@@ -128,6 +127,26 @@ const HomeScreen = ({ navigation }: any) => {
     getUserKey();
     scanForDevices();
   }, []);
+
+  useEffect(() => {
+    if (connectedDevice) {
+      showDialog();
+    }
+  }, [connectedDevice]);
+
+  const disconectAndClose = useCallback(async () => {
+    disconnectFromDevice();
+    console.log("desconectando...");
+    hideDialog();
+  }, [connectedDevice]);
+
+  const sendKeytoESP = useCallback(async () => {
+    sendKey(key);
+    console.log(statusKey);
+    if (statusKey) {
+      disconectAndClose();
+    }
+  }, [key, statusKey]);
 
   if (user == null) {
     return (
@@ -180,13 +199,16 @@ const HomeScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <View>
           <Portal>
-            <Dialog visible={visible} onDismiss={hideDialog}>
-              <Dialog.Title>Alert</Dialog.Title>
+            <Dialog visible={visible}>
+              <Dialog.Title>{connectedDevice?.name}</Dialog.Title>
               <Dialog.Content>
-                <Text variant="bodyMedium">This is simple dialog</Text>
+                <Text variant="bodyMedium">
+                  Conectado na porta com sucesso.
+                </Text>
               </Dialog.Content>
               <Dialog.Actions>
-                <Button onPress={hideDialog}>Done</Button>
+                <Button onPress={sendKeytoESP}>Abrir</Button>
+                <Button onPress={disconectAndClose}>Desconectar</Button>
               </Dialog.Actions>
             </Dialog>
           </Portal>
@@ -296,15 +318,3 @@ const modalStyle = StyleSheet.create({
 });
 
 export default HomeScreen;
-
-// import { View , Text} from "react-native";
-
-// function HomeScreen() {
-//   return (
-//     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-//       <Text>Home Screen</Text>
-//     </View>
-//   );
-// }
-
-// export default HomeScreen;
