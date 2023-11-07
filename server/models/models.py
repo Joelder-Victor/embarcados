@@ -31,6 +31,7 @@ class RequestModelEmail(BaseModel):
 class RequestLogModel(BaseModel):
     key: str
     door_id:str
+    hour:datetime
     # Adicione outros campos que você deseja incluir na requisição
 
     class Config:
