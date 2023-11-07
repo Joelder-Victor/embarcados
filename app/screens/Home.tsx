@@ -41,9 +41,11 @@ const HomeScreen = ({ navigation }: any) => {
     connectToDevice,
     connectedDevice,
     disconnectFromDevice,
+    sendKey,
   } = useBLE();
   const [user, setUser] = useState<User | null>();
   const [visible, setVisible] = React.useState(false);
+  const [key, setKey] = useState<string>("");
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -65,11 +67,32 @@ const HomeScreen = ({ navigation }: any) => {
     setUser(currentUser);
   };
 
+  const getUserKey = async () => {
+    const userKey = await fetch("https://laser-1.onrender.com/app/get_key", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: user?.user.email,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setKey(data.key); // Faça o que deseja com os dados de resposta aqui
+      })
+      .catch((error) => {
+        console.error("Erro:", error);
+      });
+  };
+
   const DeviceModalListItem: FC<DeviceModalListItemProps> = (props) => {
     const { item, connectToPeripheral } = props;
 
-    const connectAndCloseModal = useCallback(() => {
+    const connectAndCloseModal = useCallback(async () => {
       connectToPeripheral(item.item);
+      sendKey(key);
       showDialog();
     }, [connectToPeripheral, item.item, showDialog]);
 
@@ -102,6 +125,7 @@ const HomeScreen = ({ navigation }: any) => {
       getCurrentUser();
     }
     GoogleSignin.configure({});
+    getUserKey();
     scanForDevices();
   }, []);
 
@@ -131,6 +155,16 @@ const HomeScreen = ({ navigation }: any) => {
             renderItem={renderDeviceModalListItem}
           />
         </View>
+        <TouchableOpacity
+          onPress={
+            connectedDevice ? disconnectFromDevice : disconnectFromDevice
+          }
+          style={styles.ctaButton}
+        >
+          <Text style={styles.ctaButtonText}>
+            {connectedDevice ? "Disconnect" : "Connect"}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
             try {

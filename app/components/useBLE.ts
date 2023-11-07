@@ -1,7 +1,8 @@
 /* eslint-disable no-bitwise */
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
 import {
+  Base64,
   BleError,
   BleManager,
   Characteristic,
@@ -10,10 +11,12 @@ import {
 
 import * as ExpoDevice from "expo-device";
 
+import { Buffer } from "buffer";
+
 // import base64 from "react-native-base64";
 
-// const HEART_RATE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
-// const HEART_RATE_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
+const UUID_CHARACTERISTIC = "000002a1-0000-1000-8000-00805f9b34fb";
+const UUID_SERVICE = "00001802-0000-1000-8000-00805f9b34fb";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
@@ -22,6 +25,7 @@ interface BluetoothLowEnergyApi {
   disconnectFromDevice: () => void;
   connectedDevice: Device | null;
   allDevices: Device[];
+  sendKey: (key: string) => Promise<void>;
 //   heartRate: number;
 }
 
@@ -30,6 +34,8 @@ const bleManager = new BleManager();
 function useBLE(): BluetoothLowEnergyApi {
   const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+  const [uuid, setUuid] = useState<string>("");
+  const [serviceUuid, setServiceUuid] = useState<string>("");
 //   const [heartRate, setHeartRate] = useState<number>(0);
 
   const requestAndroid31Permissions = async () => {
@@ -109,9 +115,11 @@ function useBLE(): BluetoothLowEnergyApi {
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
       setConnectedDevice(deviceConnection);
-      await deviceConnection.discoverAllServicesAndCharacteristics();
+      await bleManager.discoverAllServicesAndCharacteristicsForDevice(device.id);
+      const services = await deviceConnection.characteristicsForService(UUID_SERVICE);
+      console.log(deviceConnection.services())
+      console.log(services);      
       bleManager.stopDeviceScan();
-      //startStreamingData(deviceConnection);
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -124,6 +132,61 @@ function useBLE(): BluetoothLowEnergyApi {
       //setHeartRate(0);
     }
   };
+
+
+  const encodeStringToBase64 = (value: string) => {
+    console.log(Buffer.from(value).toString("base64"));
+    return Buffer.from(value).toString("base64");
+};
+  const sendKey = useCallback(
+  async (key: string) => {
+    try {
+      await connectedDevice.writeCharacteristicWithoutResponseForService(
+        UUID_SERVICE,
+        UUID_CHARACTERISTIC,
+        encodeStringToBase64('hm4FigbDw7MDZpdXwB')
+      );
+    } catch (error) {
+      throw new Error(JSON.stringify(error));
+    } finally{
+      disconnectFromDevice();
+    }
+  },
+  [connectedDevice]
+);
+
+//   const discoverDeviceServices = useCallback(async () => {
+//   if (!connectedDevice) {
+//     throw new Error("Device is not connected to the app");
+//   }
+
+//   await connectedDevice.discoverAllServicesAndCharacteristics();
+// }, []);
+
+// const getDeviceServices = useCallback(async (device: Device) => {
+//   try {
+//     await discoverDeviceServices();
+//     const services = await connectedDevice.services();
+//     console.log(services);
+//     const characteristic = await connectedDevice.characteristicsForService(services[0].uuid)
+//     console.log(characteristic);
+//     setUuid(characteristic[0].uuid);
+//     setServiceUuid(characteristic[0].serviceUUID);
+//     console.log(uuid);
+//     console.log(serviceUuid)
+//   } catch (error) {
+//     throw new Error(error);
+//   }
+// }, [connectedDevice, discoverDeviceServices]);
+
+      // await discoverDeviceServices();
+      // const services = await connectedDevice.services();
+      // const characteristic = await connectedDevice.characteristicsForService(services[0].uuid)
+      // console.log(characteristic);
+      // setUuid(characteristic[0].uuid);
+      // setServiceUuid(characteristic[0].serviceUUID);
+      // console.log(uuid);
+      // console.log(serviceUuid)
 
 //   const onHeartRateUpdate = (
 //     error: BleError | null,
@@ -172,6 +235,7 @@ function useBLE(): BluetoothLowEnergyApi {
     allDevices,
     connectedDevice,
     disconnectFromDevice,
+    sendKey,
     // heartRate,
   };
 }

@@ -1,6 +1,5 @@
 #include "../include/ble.h"
 
-
 char *TAG = DOOR_NAME;
 uint8_t ble_addr_type;
 
@@ -15,11 +14,10 @@ struct Log
 
 struct Log logging[LEN_CACHE];
 
-
 // UUID - Universal Unique Identifier
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
-     .uuid = BLE_UUID16_DECLARE(0x1800), // Define UUID for device type
+     .uuid = BLE_UUID16_DECLARE(0x1802), // Define UUID for device type
      .characteristics = (struct ble_gatt_chr_def[]){
          {.uuid = BLE_UUID16_DECLARE(0xFEF4), // Define UUID for reading
           .flags = BLE_GATT_CHR_F_READ,
@@ -56,7 +54,7 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
 
     char *data = (char *)ctxt->om->om_data;
     char post_data[LEN_POST_DATA];
-    
+
     create_post_data(&post_data, data, "");
     printf("Length Data %d\n", strlen(data));
 
@@ -67,9 +65,9 @@ static int device_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_g
         gpio_set_level(OUT_SIGNAL, 1);
 
         get_current_datetime(current_datetime);
-        
+
         create_post_data(&post_data, data, current_datetime);
-        
+
         response = post_rest_function(post_data, "log_entries");
 
         if (response == 200)
@@ -187,4 +185,5 @@ void connect_ble()
     ble_gatts_add_svcs(gatt_svcs);          // 4 - Initialize NimBLE configuration - queues gatt services.
     ble_hs_cfg.sync_cb = ble_app_on_sync;   // 5 - Initialize application
     nimble_port_freertos_init(host_task);   // 6 - Run the thread
+    ESP_LOGI("BLE", "SERVICE STARTED");
 }
